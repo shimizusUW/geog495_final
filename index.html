@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MLB Ballparks</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v2.6.0/mapbox-gl.js'></script>
+<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v2.6.0/mapbox-gl.css' rel='stylesheet' />
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.min.js"></script>
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.css" type="text/css">
+
+<style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      color: #313030;
+      font: 400 15px/22px 'Source Sans Pro', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+    * {
+    box-sizing: border-box;
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0;
+      font-weight: 400;
+      line-height: 20px;
+      padding: 20px 2px;
+    }
+    a {
+      color: #404040;
+      text-decoration: none;
+    }
+    a:hover {
+      color: #101010;
+    }
+    .sidebar {
+      position: absolute;
+      width: 30%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      overflow: hidden;
+      border-right: 1px solid rgba(0, 0, 0, 0.25);
+    }
+    .pad2 {
+    padding: 20px;
+    }
+    .map {
+      position: absolute;
+      left: 25%;
+      width: 75%;
+      top: 0;
+      bottom: 0;
+    }
+    .heading {
+      background: rgb(255, 255, 255);
+      border-bottom: 1px solid #eee;
+      min-height: 60px;
+      line-height: 60px;
+      padding: 0 10px;
+      background-color: #ffffff;
+      color: darkblue;
+    }
+    .listings {
+      height: 100%;
+      overflow: auto;
+      padding-bottom: 60px;
+    }
+    .listings .item {
+      border-bottom: 1px solid #eee;
+      padding: 10px;
+      text-decoration: none;
+    }
+    .listings .item:last-child { 
+      border-bottom: none; 
+      }
+    .listings .item .title {
+      display: block;
+      color: black;
+      font-weight: 700;
+    }
+    .listings .item .title small { font-weight: 400; }
+    .listings .item .subtitle {
+      display: block;
+      color: red;
+      font-weight: 700;
+    }
+    .listings .item .subtitle small { 
+      font-weight: 400; 
+      }
+    .listings .item.active .subtitle,
+    .listings .item .subtitle:hover { 
+      color: yellow; 
+      }
+    .listings .item.active {
+      background-color: #f8f8f8;
+    }
+    ::-webkit-scrollbar {
+      width: 3px;
+      height: 3px;
+      border-left: 0;
+      background: rgba(0, 0, 0, 0.1);
+    }
+    ::-webkit-scrollbar-track {
+      background: none;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: black;
+      border-radius: 0;
+    }
+    .marker {
+      border-radius: 50%;
+      background-image: src('/assets/baseball.jpg');
+      cursor: pointer;
+      height: 50px;
+      width: 50px;
+    }
+    .mapboxgl-popup {
+      padding-bottom: 50px;
+    }
+    .mapboxgl-popup-close-button {
+      display: none;
+    }
+    .mapboxgl-popup-content {
+      font: 400 15px/22px 'Source Sans Pro', 'Helvetica Neue', sans-serif;
+      padding: 0;
+      width: 180px;
+    }
+    .mapboxgl-popup-content h3 {
+      background: #d68185;
+      color: #fff;
+      margin: -15px 0 0;
+      padding: 10px;
+      border-radius: 3px 3px 0 0;
+      font-weight: 700;
+    }
+    .mapboxgl-popup-content h4 {
+      margin: 0;
+      padding: 10px;
+      font-weight: 400;
+    }
+    .mapboxgl-popup-content div {
+      padding: 10px;
+    }
+    .mapboxgl-popup-anchor-top > .mapboxgl-popup-content {
+      margin-top: 15px;
+    }
+    .mapboxgl-popup-anchor-top > .mapboxgl-popup-tip {
+      border-bottom-color: #d68185;
+    }
+    .mapboxgl-ctrl-geocoder {
+      border: 0;
+      border-radius: 0;
+      position: relative;
+      top: 0;
+      width: 800px;
+      margin-top: 0;
+    }
+    .mapboxgl-ctrl-geocoder > div {
+      min-width: 100%;
+      margin-left: 0;
+    }
+</style>
+</head>
+<body>
+<div class='sidebar'>
+<div class='heading'>
+<h1>MLB Ballparks</h1>
+</div>
+<div id='listings' class='listings'></div>
+</div>
+<div id="map" class="map"></div>
+<script>
+        mapboxgl.accessToken = 'pk.eyJ1Ijoic2hvdGFzaGltaXp1dXUiLCJhIjoiY2p5b3FoZTFnMDByeDNscXRnZ2Y3bHdzeCJ9.vtZCutjwiUMaJ6rhD52J-Q';
+        const map = new mapboxgl.Map({
+          container: 'map',
+          style: 'mapbox://styles/shotashimizuuu/ckwzisri21arm14jm97d8v4sp',
+          center: [-92.603809, 38.925861],
+          zoom: 3.25,
+          scrollZoom: true
+        });
+        async function geojsonFetch() {
+            let response = await fetch('assets/ballparks.geojson');
+            let ballparks = await response.json();
+        ballparks.features.forEach((ballparks, i) => {
+        ballparks.properties.id = i;
+        }
+        );
+        map.on('load', function loadingData() {
+              map.addSource('ballpark', {
+                  type: 'geojson',
+                  data: ballparks
+              });
+              const geocoder = new MapboxGeocoder({
+              accessToken: mapboxgl.accessToken, 
+              mapboxgl: mapboxgl, 
+              marker: true, 
+              // bbox: [-5.71287, 49.95987, 1.74176, 55.81129] 
+              });
+              buildLocationList(ballparks);
+              map.addControl(geocoder, 'top-left');
+              addMarkers();
+              geocoder.on('result', (event) => {
+              const searchResult = event.result.geometry;
+              const options = { units: 'miles' };
+                for (const ballpark of ballparks.features) {
+              ballpark.properties.distance = turf.distance(
+              searchResult,
+              ballpark.geometry,
+              options
+              );
+              }
+              ballparks.features.sort((a, b) => {
+              if (a.properties.distance > b.properties.distance) {
+                return 1;
+              }
+              if (a.properties.distance < b.properties.distance) {
+                return -1;
+              }
+              return 0; 
+            });
+            const listings = document.getElementById('listings');
+            while (listings.firstChild) {
+            listings.removeChild(listings.firstChild);
+            }
+            buildLocationList(ballparks);
+            createPopUp(ballparks.features[0]);
+            const activeListing = document.getElementById(
+              `listing-${ballparks.features[0].properties.id}`
+            );
+            activeListing.classList.add('active');
+            const bbox = getBbox(ballparks, 0, searchResult);
+              map.fitBounds(bbox, {
+              padding: 100
+            });
+            });
+            });
+
+        map.on('load', () => {
+          map.addSource('ballparks', {
+            'type':'geojson',
+            'data': ballparks
+          });
+          buildLocationList(ballparks);
+          addMarkers();
+        })
+            function getBbox(sortedStadiums, stadiumIdentifier, searchResult) {
+              const lats = [
+                sortedStadiums.features[stadiumIdentifier].geometry.coordinates[1],
+                searchResult.coordinates[1]
+              ];
+              const lons = [
+                sortedStadiums.features[stadiumIdentifier].geometry.coordinates[0],
+                searchResult.coordinates[0]
+              ];
+              const sortedLons = lons.sort((a, b) => {
+                if (a > b) {
+                  return 1;
+                }
+                if (a.distance < b.distance) {
+                  return -1;
+                }
+                return 0;
+              });
+              const sortedLats = lats.sort((a, b) => {
+                if (a > b) {
+                  return 1;
+                }
+                if (a.distance < b.distance) {
+                  return -1;
+                }
+                return 0;
+              });
+              return [
+                [sortedLons[0], sortedLats[0]],
+                [sortedLons[1], sortedLats[1]]
+              ];
+            }
+            function addMarkers() {
+              
+              for (const marker of ballparks.features) {
+                const el = document.createElement('div');
+                el.id = `marker-${marker.properties.id}`;
+                el.className = 'marker';
+                //, { offset: [0, -23] }
+                new mapboxgl.Marker(el)
+                .setLngLat(marker.geometry.coordinates)
+                .addTo(map);
+                el.addEventListener('click', (e) => {
+                  flyToBallpark(marker);
+                  createPopUp(marker);
+                  const activeItem = document.getElementsByClassName('active');
+                  e.stopPropagation();
+                  if (activeItem[0]) {
+                    activeItem[0].classList.remove('active');
+                  }
+                  const listing = document.getElementById(`listing-${marker.properties.id}`);
+                  listing.classList.add('active');
+                });
+                }
+            }
+            function buildLocationList(ballparks) {
+            for (const ballpark of ballparks.features) {
+            const listings = document.getElementById('listings');
+            const listing = listings.appendChild(document.createElement('div'));
+            listing.team = `listing-${ballpark.properties.Teams}`;
+            listing.className = 'item';
+            const link = listing.appendChild(document.createElement('a'));
+            link.href = '#';
+            link.className = 'title';
+            link.ballpark = `link-${ballpark.properties.Ballpark}`;
+            link.innerHTML = `${ballpark.properties.Ballpark}`;
+            const sublink = listing.appendChild(document.createElement('a'));
+            sublink.href = '#';
+            sublink.className = 'subtitle';
+            sublink.team = `link-${ballpark.properties.Teams}`;
+            sublink.innerHTML = `${ballpark.properties.Teams}`;
+            }
+            }
+            }
+              
+            function flyToBallpark(currentFeature) {
+            map.flyTo({
+            center: currentFeature.geometry.coordinates,
+            zoom: 15
+            });
+            }
+            function createPopUp(currentFeature) {
+            const popUps = document.getElementsByClassName('mapboxgl-popup');
+            if (popUps[0]) popUps[0].remove();
+            const popup = new mapboxgl.Popup({ closeOnClick: true })
+            .setLngLat(currentFeature.geometry.coordinates)
+            .setHTML(`<h3>${currentFeature.properties.Name}</h3><h3>${currentFeature.properties.Team}</h3><h4>${currentFeature.properties.Address}</h4>`)
+            .addTo(map);
+            }
+        geojsonFetch();
+      </script>
+</body>
+</html>
